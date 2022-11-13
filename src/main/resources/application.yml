@@ -1,6 +1,9 @@
 server:
   port: 8080
 spring:
+  cache:
+    redis:
+      time-to-live: 1800000 #缓存过期时间
   redis:
     host: 192.168.159.128
     port: 6379
