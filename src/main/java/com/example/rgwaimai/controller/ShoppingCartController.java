@@ -3,15 +3,17 @@ package com.example.rgwaimai.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.rgwaimai.common.BaseContext;
 import com.example.rgwaimai.common.R;
-import com.example.rgwaimai.dto.DishDto;
+import com.example.rgwaimai.entity.Dish;
 import com.example.rgwaimai.entity.ShoppingCart;
-import com.example.rgwaimai.entity.User;
+import com.example.rgwaimai.service.DishService;
+import com.example.rgwaimai.service.SetmealService;
 import com.example.rgwaimai.service.ShoppingCartService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.annotations.Delete;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -26,6 +28,12 @@ public class ShoppingCartController {
 
     @Autowired
     private ShoppingCartService shoppingCartService;
+
+    @Autowired
+    private DishService dishService;
+
+    @Resource
+    private RedisTemplate redisTemplate;
 
     @GetMapping("/list")
     public R<List<ShoppingCart>> listR(){
@@ -95,12 +103,19 @@ public class ShoppingCartController {
             queryWrapper.eq(ShoppingCart::getSetmealId,shoppingCart.getSetmealId());
         }
 
+        String key = null;
         ShoppingCart one = shoppingCartService.getOne(queryWrapper);
         if(one.getNumber()>1){
             //如果已经存在，则添加到购物车
             one.setNumber(one.getNumber()-1);
             shoppingCartService.updateById(one);
         }else {
+            if(shoppingCart.getDishId()!=null) {
+                Dish dish = dishService.getById(one.getDishId());
+                key = "dish_" + dish.getCategoryId() + "_" + dish.getStatus();
+                redisTemplate.delete(key);
+            }
+
             shoppingCartService.removeById(one);
         }
         return R.success(one);

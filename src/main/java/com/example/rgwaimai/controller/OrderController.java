@@ -11,7 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-;import java.util.List;
+import java.time.LocalDateTime;
+
+;
 
 /**
  * 订单
@@ -26,6 +28,7 @@ public class OrderController {
 
     @Autowired
     private OrderDetailService orderDetailService;
+
 
     /**
      * 用户下单
@@ -50,6 +53,35 @@ public class OrderController {
         orderService.page(pageInfo,queryWrapper);
 
         return R.success(pageInfo);
+    }
+
+    @GetMapping("/page")
+    public R<Page> page(int page, int pageSize, Long number, LocalDateTime beginTime,LocalDateTime endTime){
+        Page<Orders> pageInfo = new Page(page,pageSize);
+
+        LambdaQueryWrapper<Orders> queryWrapper = new LambdaQueryWrapper();
+        queryWrapper.eq(number!=null,Orders::getNumber,number);
+        queryWrapper.between(beginTime!=null && endTime!=null,Orders::getOrderTime,beginTime,endTime);
+        queryWrapper.orderByDesc(Orders::getCheckoutTime);
+
+        orderService.page(pageInfo,queryWrapper);
+
+        return R.success(pageInfo);
+    }
+
+    @PutMapping
+    public R<Orders> update(@RequestBody Orders orders){
+        Long id = orders.getId();
+        Integer status = orders.getStatus();
+        orders = orderService.getById(id);
+        orders.setStatus(status);
+        orderService.updateById(orders);
+        return R.success(orders);
+    }
+
+    @PostMapping("/again")
+    public R<Orders> again(@RequestBody Orders orders){
+        return R.success(orders);
     }
 
 }
